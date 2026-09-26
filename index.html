@@ -1,0 +1,163 @@
+<!doctype html>
+
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Cardápio Digital - Lanchonete</title>
+
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <!-- Cabeçalho -->
+
+    <header>
+      <h1>Cardápio Digital</h1>
+
+      <button id="btn-abrir-login" class="btn-secundario">
+        Área do Cliente / Login
+      </button>
+    </header>
+
+    <main class="container">
+      <!-- Painel do Admin (Invisível por padrão) -->
+
+      <section id="painel-admin" class="card-admin oculto">
+        <h2>Painel Administrativo</h2>
+
+        <p>
+          Faturamento Acumulado (Sessão):
+
+          <strong id="faturamento-acumulado"> R$ 0.00 </strong>
+        </p>
+
+        <!-- PEDIDOS PENDENTES -->
+
+        <div class="area-vendas">
+          <h3>Pedidos Pendentes</h3>
+
+          <!--
+          O conteúdo será criado
+          dinamicamente pelo TypeScript
+        -->
+
+          <div id="vendas-pendentes"></div>
+        </div>
+
+        <!-- CADASTRO DE PRODUTO -->
+
+        <form id="form-novo-produto" class="form-grid">
+          <h3>Adicionar Novo Produto ao Cardápio</h3>
+
+          <input
+            type="text"
+            id="novo-nome"
+            placeholder="Nome do Produto"
+            required
+          />
+
+          <input
+            type="number"
+            step="0.01"
+            id="novo-preco"
+            placeholder="Preço Base (R$)"
+            required
+          />
+
+          <select id="novo-tipo">
+            <option value="lanche">Lanche</option>
+
+            <option value="bebida">Bebida</option>
+          </select>
+
+          <input type="url" id="novo-imagem" placeholder="URL da Imagem" />
+
+          <button type="submit" class="btn-principal">Cadastrar Produto</button>
+        </form>
+      </section>
+
+      <!-- Menu Principal -->
+
+      <section>
+        <h2>Nosso Cardápio</h2>
+
+        <!--
+        IMPORTANTE:
+        permanece vazio.
+        Os cards são criados pelo TypeScript.
+      -->
+
+        <div id="cardapio-container" class="grid-cardapio"></div>
+      </section>
+    </main>
+
+    <!-- Botão Flutuante do Carrinho -->
+
+    <button id="btn-acompanhar-carrinho" class="btn-flutuante">
+      🛒 Acompanhar meu carrinho
+
+      <span id="cart-badge" class="badge"> 0 </span>
+    </button>
+
+    <!-- Modal do Carrinho -->
+
+    <div id="modal-carrinho" class="modal">
+      <div class="modal-conteudo">
+        <span id="fechar-carrinho" class="btn-fechar"> &times; </span>
+
+        <h2>Meu Carrinho de Compras</h2>
+
+        <div id="itens-carrinho"></div>
+
+        <div class="rodape-carrinho">
+          <p>
+            Total Parcial:
+
+            <strong id="total-carrinho"> R$ 0.00 </strong>
+          </p>
+
+          <button id="btn-encerrar-pedido" class="btn-principal">
+            Enviar Pedido
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Login Admin -->
+
+    <div id="modal-login" class="modal">
+      <div class="modal-conteudo">
+        <span id="fechar-login" class="btn-fechar"> &times; </span>
+
+        <h2>Login Administrativo</h2>
+
+        <form id="form-login">
+          <input
+            type="text"
+            id="login-usuario"
+            placeholder="Usuário (admin)"
+            autocomplete="username"
+            required
+          />
+
+          <input
+            type="password"
+            id="login-senha"
+            placeholder="Senha (admin)"
+            autocomplete="current-password"
+            required
+          />
+
+          <button type="submit" class="btn-principal">Entrar</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- JavaScript gerado pelo TypeScript -->
+
+    <script type="module" src="dist/app.js"></script>
+  </body>
+</html>
