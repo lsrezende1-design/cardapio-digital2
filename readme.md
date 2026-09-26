@@ -1,244 +1,257 @@
-Cardápio Digital - Lanchonete
+# Cardápio Digital --- Sistema de Gestão de Vendas
 
-Projeto acadêmico desenvolvido em TypeScript, com foco em Programação Orientada a Objetos (POO), geração dinâmica de interface, persistência com localStorage e gerenciamento de vendas.
+Projeto desenvolvido em **TypeScript**, utilizando conceitos de
+**Programação Orientada a Objetos (POO)**. O sistema mantém o cardápio
+dinâmico da Sprint 1 e acrescenta, na Sprint 2, carrinho, vendas, painel
+administrativo, encapsulamento, herança, polimorfismo, interfaces e
+membros estáticos.
 
-Objetivo
+## Funcionalidades
 
-O projeto simula um cardápio digital de uma lanchonete. O cliente pode visualizar os produtos, adicioná-los ao carrinho e enviar um pedido. O pedido fica pendente até que o administrador faça login e finalize a venda. Somente após a finalização o valor é acrescentado ao faturamento acumulado da sessão.
+O cliente pode visualizar os produtos do cardápio, escolher opções
+específicas e adicioná-los ao carrinho. Para os lanches, é possível
+escolher os tamanhos P, M ou G. Para as bebidas, é possível escolher sem
+gelo ou com gelo.
 
-Funcionalidades
+O administrador pode entrar na área de gestão, cadastrar e excluir
+produtos, visualizar pedidos pendentes e finalizar vendas. Quando uma
+venda é finalizada, seu valor é acrescentado ao faturamento acumulado e
+seu registro é salvo.
 
-Cardápio gerado dinamicamente pelo TypeScript.
+## Estrutura do projeto
 
-Produtos iniciais criados via código.
-
-Produtos divididos em Bebida e Lanche.
-
-Cálculo de preço final específico para cada tipo de produto.
-
-Cadastro e exclusão de produtos pelo painel administrativo.
-
-Persistência do cardápio utilizando localStorage.
-
-Reconstrução das instâncias de Bebida e Lanche após recarregar a página.
-
-Carrinho com controle de quantidade, remoção e total.
-
-Envio de pedido para a lista de pedidos pendentes.
-
-Login administrativo.
-
-Finalização de vendas pelo administrador.
-
-Faturamento acumulado atualizado somente após a venda ser finalizada.
-
-Layout responsivo.
-
-Estrutura do projeto
-
-projeto/
+```text
+cardapio-digital2/
 ├── index.html
 ├── style.css
 ├── tsconfig.json
+├── readme.md
 ├── src/
-│ ├── app.ts
-│ ├── models.ts
-│ ├── storageService.ts
-│ └── data/
-│ └── produtosIniciais.ts
+│   ├── app.ts
+│   ├── models.ts
+│   ├── storageService.ts
+│   └── data/
+│       └── produtosIniciais.ts
 └── dist/
-└── app.js
+    ├── app.js
+    ├── models.js
+    ├── storageService.js
+    └── data/
+        └── produtosIniciais.js
+```
 
-index.html
+Os arquivos `.ts` dentro de `src` são os arquivos-fonte do projeto. Os
+arquivos `.js` de `dist` são gerados pela compilação do TypeScript.
 
-Contém a estrutura da página. O container do cardápio permanece vazio no HTML, pois os cards são gerados dinamicamente pelo TypeScript. Também contém os modais do carrinho e login e o painel administrativo.
+## Organização das classes
 
-style.css
+### ProdutoRenderizavel
 
-Responsável pela aparência da aplicação, organização dos cards, modais, botões, painel administrativo e responsividade.
+Interface que define o contrato básico dos produtos. Um produto
+renderizável possui `id`, `nome` e os métodos `calcularPrecoFinal()` e
+`gerarHTML()`.
 
-src/models.ts
+### Produto
 
-Concentra as principais classes e conceitos de POO:
+Classe abstrata que implementa `ProdutoRenderizavel` e reúne os dados
+comuns aos produtos, como identificador, nome, preço-base e imagem. O
+`id` é `readonly`.
 
-ProdutoRenderizavel
+Os métodos `calcularPrecoFinal()` e `gerarHTML()` são abstratos e devem
+ser implementados pelas classes filhas.
 
-ItemCarrinho
+### Bebida
 
-Produto
+Classe que herda de `Produto`.
 
-Bebida
+A bebida pode ser escolhida:
 
-Lanche
+- sem gelo: mantém o preço-base;
+- com gelo: acrescenta **R\$ 1,00** ao preço-base.
 
-Carrinho
+A própria classe implementa `calcularPrecoFinal()` e `gerarHTML()`.
 
-Venda
+### Lanche
 
-src/data/produtosIniciais.ts
+Classe que herda de `Produto`.
 
-Cria os produtos iniciais utilizados quando ainda não existe um cardápio salvo no navegador.
+O preço depende do tamanho escolhido:
 
-src/storageService.ts
+- P: preço-base menos **R\$ 2,00**;
+- M: mantém o preço-base;
+- G: preço-base mais **R\$ 5,00**.
 
-Responsável por salvar e recuperar os produtos utilizando localStorage.
+A própria classe implementa `calcularPrecoFinal()` e `gerarHTML()`.
 
-src/app.ts
+### Cardapio
 
-Integra as classes com a interface da página. Controla renderização, carrinho, login, cadastro e exclusão de produtos, pedidos pendentes e finalização de vendas.
+Classe responsável por gerenciar a coleção de produtos do cardápio.
 
-Conceitos de POO aplicados
+Ela centraliza operações como definir a lista de produtos, adicionar,
+remover, procurar um produto pelo `id`, consultar os produtos
+disponíveis e obter a quantidade cadastrada.
 
-Interface
+Assim, o `app.ts` não precisa manipular diretamente o array interno do
+cardápio.
 
-ProdutoRenderizavel funciona como contrato para os produtos.
+### Carrinho
 
-Classe abstrata
+Responsável pelos itens escolhidos pelo cliente.
 
-Produto reúne os atributos e comportamentos comuns às especializações.
+Sua lista de itens é `private readonly`, evitando acesso direto pela
+interface. A classe possui métodos controlados para adicionar produtos,
+alterar quantidades, remover itens e limpar o carrinho.
 
-Herança
+O total é calculado chamando `calcularPrecoFinal()` dos produtos.
 
-Bebida e Lanche utilizam extends Produto.
+### Venda
 
-Polimorfismo
+Representa uma venda do sistema.
 
-Bebida e Lanche implementam calcularPrecoFinal() e gerarHTML() de formas diferentes. O sistema pode trabalhar com objetos do tipo Produto e cada instância executa seu próprio comportamento.
+A lista de produtos é `private readonly`, e os produtos são incluídos
+por meio do método `adicionar()`. Depois que a venda é finalizada, novos
+produtos não podem ser adicionados.
 
-Encapsulamento
+O getter `total` calcula o valor da venda a partir do preço final de
+cada produto.
 
-Atributos internos são protegidos com private, e o acesso necessário ocorre por métodos e getters controlados.
+A classe também possui o membro `static` responsável pelo faturamento
+acumulado. O faturamento aumenta quando `finalizar()` é executado.
 
-readonly
+### StorageService
 
-O identificador do produto é somente leitura. Listas internas também utilizam readonly para proteger suas referências contra reatribuição.
+Responsável pela persistência no `localStorage`.
 
-static
+O sistema salva:
 
-Venda.faturamentoTotal pertence à classe Venda e acumula os valores das vendas finalizadas.
+- produtos cadastrados no cardápio;
+- vendas finalizadas.
 
-Regras de preço
+Ao carregar a aplicação, os produtos salvos são reconstruídos como
+objetos `Bebida` ou `Lanche`. As vendas finalizadas são recuperadas e
+seus totais são utilizados para reconstruir o faturamento acumulado.
 
-Bebida
+Os pedidos ainda pendentes permanecem apenas durante a sessão e não são
+persistidos.
 
-A bebida gelada recebe acréscimo de 10% sobre o preço base.
+## Produtos iniciais
 
-Lanche
+Quando ainda não existem produtos salvos no navegador, o sistema utiliza
+os produtos definidos em `produtosIniciais.ts`.
 
-Tamanho P: preço base - R$ 2,00, sem permitir valor negativo.
+O projeto possui quatro produtos iniciais criados diretamente pelo
+código TypeScript:
 
-Tamanho M: mantém o preço base.
+- Suco de Laranja;
+- Refrigerante Lata;
+- X-Salada Especial;
+- Super X-Tudo.
 
-Tamanho G: preço base + R$ 5,00.
+Não é utilizado um arquivo JSON externo como fonte dos produtos.
+`JSON.stringify()` e `JSON.parse()` aparecem apenas para serializar e
+recuperar informações armazenadas no `localStorage`.
 
-Fluxo de uma venda
+## Programação Orientada a Objetos
 
-Cliente escolhe os produtos
-↓
-Adiciona ao carrinho
-↓
-Envia o pedido
-↓
-Venda fica pendente
-↓
-Administrador faz login
-↓
-Confere o pedido
-↓
-Finaliza a venda
-↓
-Faturamento acumulado é atualizado
+### Interface
 
-O faturamento não é atualizado quando o cliente apenas envia o pedido. O valor é acrescentado somente quando Venda.finalizar() é executado.
+`ProdutoRenderizavel` define o contrato que deve ser seguido pelos
+produtos renderizáveis.
 
-Persistência com localStorage
+### Herança
 
-O cardápio é salvo no localStorage do navegador. Como o armazenamento guarda dados serializados e não preserva automaticamente os métodos das classes, os produtos recuperados são reconstruídos como instâncias de Bebida ou Lanche.
+`Bebida` e `Lanche` herdam características comuns da classe abstrata
+`Produto`.
 
-Assim, após atualizar a página, os produtos continuam disponíveis e recuperam comportamentos como calcularPrecoFinal() e gerarHTML().
+### Polimorfismo
 
-Como executar
+`Bebida` e `Lanche` possuem o método `calcularPrecoFinal()`, porém cada
+classe implementa esse método de forma diferente.
 
-Certifique-se de possuir Node.js e TypeScript disponíveis no ambiente.
+Quando o sistema chama:
 
-Abra o terminal na pasta do projeto.
+```ts
+produto.calcularPrecoFinal();
+```
 
-Compile o TypeScript:
+o comportamento executado depende do objeto real. Uma `Bebida` utiliza
+sua regra de preço e um `Lanche` utiliza sua própria regra, sem que o
+cálculo geral precise conhecer todos os detalhes de cada tipo.
 
+### Encapsulamento
+
+Atributos internos são protegidos com `private`, e o acesso ou alteração
+acontece por métodos e getters controlados.
+
+### readonly
+
+O `id` do produto é `readonly`. As listas internas de `Carrinho` e
+`Venda` também utilizam `readonly` na referência, evitando sua
+substituição direta.
+
+### static
+
+O faturamento acumulado pertence à classe `Venda`, e não a uma venda
+específica. Por isso é armazenado em um membro `static`.
+
+## Fluxo principal
+
+1.  A aplicação carrega os produtos do `localStorage`.
+2.  Se ainda não houver produtos salvos, utiliza `produtosIniciais`.
+3.  O `Cardapio` recebe e gerencia os produtos.
+4.  Cada produto gera seu próprio card HTML.
+5.  O cliente escolhe as opções e adiciona produtos ao `Carrinho`.
+6.  Ao enviar o pedido, é criada uma `Venda`.
+7.  A venda fica como pedido pendente.
+8.  O administrador visualiza o pedido e finaliza a venda.
+9.  `Venda.finalizar()` acrescenta o total ao faturamento.
+10. A venda finalizada é salva no `localStorage`.
+11. Ao recarregar a página, as vendas finalizadas são recuperadas e o
+    faturamento é reconstruído.
+
+## Requisitos atendidos
+
+### Sprint 1
+
+- cardápio gerado dinamicamente pelo TypeScript;
+- HTML inicial sem produtos escritos manualmente;
+- produtos representados por classes;
+- quatro produtos iniciais criados por código;
+- gerenciamento do cardápio pela classe `Cardapio`;
+- persistência dos produtos com `localStorage`;
+- cards organizados em grid responsivo.
+
+### Sprint 2
+
+- interface implementada;
+- classe-base abstrata `Produto`;
+- classes filhas `Bebida` e `Lanche`;
+- herança;
+- polimorfismo no cálculo de preço e geração dos cards;
+- `private`;
+- `readonly`;
+- `static`;
+- classe `Venda`;
+- lista interna da venda protegida;
+- cálculo do total pelos próprios produtos;
+- ação de finalizar venda;
+- faturamento acumulado;
+- painel administrativo;
+- pedidos pendentes e histórico de vendas finalizadas.
+
+## Compilação
+
+Na pasta principal do projeto:
+
+```bash
 npx tsc
+```
 
-Abra a aplicação por um servidor local compatível com módulos JavaScript.
+O TypeScript compila os arquivos de `src` e gera os arquivos JavaScript
+utilizados pelo navegador em `dist`.
 
-Acesse o index.html pelo servidor local.
+## Observação
 
-Como o projeto utiliza type="module", é recomendável executá-lo por um servidor local em vez de abrir o arquivo HTML diretamente pelo sistema de arquivos.
-
-Teste sugerido
-
-Verifique se os produtos aparecem no cardápio.
-
-Cadastre um novo produto no painel administrativo.
-
-Atualize a página e confirme que o produto permanece.
-
-Adicione produtos ao carrinho.
-
-Envie o pedido.
-
-Entre no painel administrativo.
-
-Confirme que o pedido aparece como pendente.
-
-Observe que o faturamento ainda não aumentou.
-
-Finalize a venda.
-
-Confirme que o pedido sai da lista de pendentes e o faturamento é atualizado.
-
-Requisitos atendidos
-
-Sprint 1
-
-Lista de produtos gerada dinamicamente.
-
-HTML inicial sem cards fixos.
-
-Pelo menos três produtos criados via código.
-
-Produto responsável por gerar seu próprio HTML.
-
-Layout responsivo.
-
-Persistência e reconstrução do cardápio com localStorage.
-
-Sprint 2
-
-Interface de produto.
-
-Classe-base Produto.
-
-Especializações Bebida e Lanche.
-
-Herança e polimorfismo.
-
-Identificador readonly.
-
-Encapsulamento com private.
-
-Classe Venda com lista privada.
-
-Adição controlada de produtos.
-
-Cálculo do total da venda.
-
-Faturamento acumulado com membro static.
-
-Faturamento alterado somente após a finalização.
-
-Painel administrativo com pedidos pendentes, finalização e faturamento.
-
-Observações
-
-O faturamento acumulado e os pedidos pendentes são mantidos durante a sessão atual da página. A persistência exigida e implementada no projeto é a do cardápio por meio do localStorage.
-
-Projeto acadêmico - Cardápio Digital em TypeScript.
+O projeto foi mantido propositalmente com uma estrutura simples,
+priorizando os conceitos estudados de TypeScript e Programação Orientada
+a Objetos.

@@ -1,29 +1,34 @@
-import { Bebida, Lanche, Carrinho, Venda } from './models.js';
+import { Bebida, Lanche, Carrinho, Venda, Cardapio, } from './models.js';
 import { produtosIniciais } from './data/produtosIniciais.js';
 import { StorageService } from './storageService.js';
-let cardapio = [];
+const cardapio = new Cardapio();
 const carrinho = new Carrinho();
 let isAdminLogado = false;
-// Guarda as vendas que ainda precisam ser aprovadas pelo administrador
 let vendasPendentes = [];
+let vendasFinalizadas = [];
 // ======================================================
 // CARREGAR PRODUTOS
 // ======================================================
 function carregarProdutos() {
     const dadosSalvos = StorageService.carregarProdutos();
-    if (dadosSalvos.length > 0) {
-        cardapio = dadosSalvos.map((item) => {
+    if (StorageService.temProdutosSalvos()) {
+        const produtosCarregados = dadosSalvos.map((item) => {
             if (item.categoria === 'bebida') {
-                return new Bebida(item.id, item.nome, item.precoBase, item.imagemUrl, item.gelada);
+                return new Bebida(item.id, item.nome, item.precoBase, item.imagemUrl);
             }
-            return new Lanche(item.id, item.nome, item.precoBase, item.imagemUrl, item.tamanho);
+            return new Lanche(item.id, item.nome, item.precoBase, item.imagemUrl);
         });
+        cardapio.definirProdutos(produtosCarregados);
     }
     else {
-        cardapio = [...produtosIniciais];
-        StorageService.salvarProdutos(cardapio);
+        cardapio.definirProdutos([...produtosIniciais]);
+        StorageService.salvarProdutos([...cardapio.listarProdutos]);
     }
+    vendasFinalizadas = StorageService.carregarVendas();
+    const faturamentoSalvo = vendasFinalizadas.reduce((soma, venda) => soma + venda.total, 0);
+    Venda.carregarFaturamento(faturamentoSalvo);
     renderizarCardapio();
+    renderizarVendasFinalizadas();
 }
 // ======================================================
 // RENDERIZAR CARDÁPIO
@@ -32,14 +37,14 @@ function renderizarCardapio() {
     const container = document.getElementById('cardapio-container');
     if (!container)
         return;
-    container.innerHTML = cardapio
-        .map((p) => {
-        let htmlCard = p.gerarHTML();
+    container.innerHTML = cardapio.listarProdutos
+        .map((produto) => {
+        let htmlCard = produto.gerarHTML();
         if (isAdminLogado) {
             const botaoExcluir = `
           <button
             class="btn-remover-admin"
-            onclick="removerDoCardapio(${p.id})"
+            onclick="removerDoCardapio(${produto.id})"
           >
             🗑️ Excluir
           </button>
@@ -50,6 +55,29 @@ function renderizarCardapio() {
     })
         .join('');
 }
+// ======================================================
+// CLIENTE ESCOLHE AS OPÇÕES
+// ======================================================
+window.adicionarBebidaAoCarrinho = (id) => {
+    const produtoBase = cardapio.buscarPorId(id);
+    if (!(produtoBase instanceof Bebida))
+        return;
+    const campoGelo = document.getElementById(`gelo-${id}`);
+    const comGelo = campoGelo.value === 'true';
+    const bebidaEscolhida = new Bebida(produtoBase.id, produtoBase.nome, produtoBase.precoBase, produtoBase.imagemUrl, comGelo);
+    carrinho.adicionarItem(bebidaEscolhida);
+    atualizarCarrinhoHTML();
+};
+window.adicionarLancheAoCarrinho = (id) => {
+    const produtoBase = cardapio.buscarPorId(id);
+    if (!(produtoBase instanceof Lanche))
+        return;
+    const campoTamanho = document.getElementById(`tamanho-${id}`);
+    const tamanho = campoTamanho.value;
+    const lancheEscolhido = new Lanche(produtoBase.id, produtoBase.nome, produtoBase.precoBase, produtoBase.imagemUrl, tamanho);
+    carrinho.adicionarItem(lancheEscolhido);
+    atualizarCarrinhoHTML();
+};
 // ======================================================
 // ATUALIZAR CARRINHO
 // ======================================================
@@ -63,88 +91,73 @@ function atualizarCarrinhoHTML() {
     if (elemTotal) {
         elemTotal.innerText = `R$ ${carrinho.total.toFixed(2)}`;
     }
-    if (containerItens) {
-        if (carrinho.obterItens.length === 0) {
-            containerItens.innerHTML = '<p>Seu carrinho está vazio.</p>';
-        }
-        else {
-            containerItens.innerHTML = carrinho.obterItens
-                .map((item) => `
-
-              <div class="item-carrinho">
-
-                <div>
-
-                  <strong>
-                    ${item.produto.nome}
-                  </strong>
-
-                  <br>
-
-                  <small>
-                    R$ ${item.produto.calcularPrecoFinal().toFixed(2)} un.
-                  </small>
-
-                </div>
-
-                <div class="controles">
-
-                  <button
-                    onclick="alterarQtd(${item.produto.id}, -1)"
-                  >
-                    -
-                  </button>
-
-                  <span>
-                    ${item.quantidade}
-                  </span>
-
-                  <button
-                    onclick="alterarQtd(${item.produto.id}, 1)"
-                  >
-                    +
-                  </button>
-
-                  <button
-                    class="btn-remover"
-                    onclick="removerItemCarrinho(${item.produto.id})"
-                  >
-                    x
-                  </button>
-
-                </div>
-
-              </div>
-
-            `)
-                .join('');
-        }
+    if (!containerItens)
+        return;
+    if (carrinho.obterItens.length === 0) {
+        containerItens.innerHTML = '<p>Seu carrinho está vazio.</p>';
+        return;
     }
+    containerItens.innerHTML = carrinho.obterItens
+        .map((item, index) => {
+        let detalhe = '';
+        if (item.produto instanceof Lanche) {
+            detalhe = `Tamanho ${item.produto.obterTamanho}`;
+        }
+        if (item.produto instanceof Bebida) {
+            detalhe = item.produto.temGelo ? 'Com gelo' : 'Sem gelo';
+        }
+        return `
+        <div class="item-carrinho">
+          <div>
+            <strong>${item.produto.nome}</strong>
+            <br>
+            <small>${detalhe}</small>
+            <br>
+            <small>
+              R$ ${item.produto.calcularPrecoFinal().toFixed(2)} un.
+            </small>
+          </div>
+
+          <div class="controles">
+            <button onclick="alterarQtd(${index}, -1)">
+              -
+            </button>
+
+            <span>${item.quantidade}</span>
+
+            <button onclick="alterarQtd(${index}, 1)">
+              +
+            </button>
+
+            <button
+              class="btn-remover"
+              onclick="removerItemCarrinho(${index})"
+            >
+              x
+            </button>
+          </div>
+        </div>
+      `;
+    })
+        .join('');
 }
 // ======================================================
 // FUNÇÕES DO CARRINHO
 // ======================================================
-window.adicionarAoCarrinho = (id) => {
-    const produto = cardapio.find((p) => p.id === id);
-    if (produto) {
-        carrinho.adicionarItem(produto);
-        atualizarCarrinhoHTML();
-    }
-};
-window.alterarQtd = (id, delta) => {
-    carrinho.alterarQuantidade(id, delta);
+window.alterarQtd = (indice, delta) => {
+    carrinho.alterarQuantidade(indice, delta);
     atualizarCarrinhoHTML();
 };
-window.removerItemCarrinho = (id) => {
-    carrinho.removerItem(id);
+window.removerItemCarrinho = (indice) => {
+    carrinho.removerItem(indice);
     atualizarCarrinhoHTML();
 };
 // ======================================================
 // REMOVER PRODUTO DO CARDÁPIO
 // ======================================================
 window.removerDoCardapio = (id) => {
-    cardapio = cardapio.filter((p) => p.id !== id);
-    StorageService.salvarProdutos(cardapio);
+    cardapio.remover(id);
+    StorageService.salvarProdutos([...cardapio.listarProdutos]);
     renderizarCardapio();
 };
 // ======================================================
@@ -155,37 +168,36 @@ function configurarModalLogin() {
     const modalLogin = document.getElementById('modal-login');
     const btnFechar = document.getElementById('fechar-login');
     const formLogin = document.getElementById('form-login');
-    btnAbrirLogin === null || btnAbrirLogin === void 0 ? void 0 : btnAbrirLogin.addEventListener('click', () => {
-        var _a;
+    btnAbrirLogin?.addEventListener('click', () => {
         if (isAdminLogado) {
             isAdminLogado = false;
-            (_a = document.getElementById('painel-admin')) === null || _a === void 0 ? void 0 : _a.classList.add('oculto');
-            btnAbrirLogin.innerText = 'Área do Cliente / Login';
+            document.getElementById('painel-admin')?.classList.add('oculto');
+            btnAbrirLogin.innerText = 'Área do Gestor / Login';
             renderizarCardapio();
             alert('Você saiu do modo administrador.');
         }
         else {
-            modalLogin === null || modalLogin === void 0 ? void 0 : modalLogin.classList.add('ativo');
+            modalLogin?.classList.add('ativo');
         }
     });
-    btnFechar === null || btnFechar === void 0 ? void 0 : btnFechar.addEventListener('click', () => {
-        modalLogin === null || modalLogin === void 0 ? void 0 : modalLogin.classList.remove('ativo');
+    btnFechar?.addEventListener('click', () => {
+        modalLogin?.classList.remove('ativo');
     });
-    formLogin === null || formLogin === void 0 ? void 0 : formLogin.addEventListener('submit', (e) => {
-        var _a;
+    formLogin?.addEventListener('submit', (e) => {
         e.preventDefault();
         const usuario = document.getElementById('login-usuario').value;
         const senha = document.getElementById('login-senha')
             .value;
         if (usuario === 'admin' && senha === 'admin') {
             isAdminLogado = true;
-            modalLogin === null || modalLogin === void 0 ? void 0 : modalLogin.classList.remove('ativo');
-            (_a = document.getElementById('painel-admin')) === null || _a === void 0 ? void 0 : _a.classList.remove('oculto');
+            modalLogin?.classList.remove('ativo');
+            document.getElementById('painel-admin')?.classList.remove('oculto');
             if (btnAbrirLogin) {
                 btnAbrirLogin.innerText = 'Sair do Modo Admin';
             }
             renderizarCardapio();
             renderizarVendasPendentes();
+            renderizarVendasFinalizadas();
             atualizarFaturamento();
             alert('Login realizado com sucesso!');
         }
@@ -197,27 +209,45 @@ function configurarModalLogin() {
     // CADASTRO DE NOVO PRODUTO
     // ====================================================
     const formNovoProduto = document.getElementById('form-novo-produto');
-    formNovoProduto === null || formNovoProduto === void 0 ? void 0 : formNovoProduto.addEventListener('submit', (e) => {
+    formNovoProduto?.addEventListener('submit', (e) => {
         e.preventDefault();
-        const nome = document.getElementById('novo-nome')
-            .value;
-        const preco = parseFloat(document.getElementById('novo-preco').value);
-        const tipo = document.getElementById('novo-tipo')
-            .value;
-        const imagem = document.getElementById('novo-imagem')
-            .value;
-        const novoId = cardapio.length > 0 ? Math.max(...cardapio.map((p) => p.id)) + 1 : 1;
-        let novoProduto;
-        if (tipo === 'bebida') {
-            novoProduto = new Bebida(novoId, nome, preco, imagem, true);
+        const mensagem = document.getElementById('mensagem-produto');
+        try {
+            mensagem.innerText = '';
+            const nome = document.getElementById('novo-nome').value.trim();
+            const campoPreco = document.getElementById('novo-preco');
+            const preco = parseFloat(campoPreco.value.replace(',', '.'));
+            if (!nome) {
+                throw new Error('Digite o nome do produto.');
+            }
+            if (isNaN(preco) || preco <= 0) {
+                throw new Error('Digite um preço válido. Exemplo: 18,50');
+            }
+            const tipo = document.getElementById('novo-tipo')
+                .value;
+            const imagem = document.getElementById('novo-imagem').value;
+            const novoId = cardapio.quantidade > 0
+                ? Math.max(...cardapio.listarProdutos.map((produto) => produto.id)) +
+                    1
+                : 1;
+            let novoProduto;
+            if (tipo === 'bebida') {
+                novoProduto = new Bebida(novoId, nome, preco, imagem);
+            }
+            else {
+                novoProduto = new Lanche(novoId, nome, preco, imagem);
+            }
+            cardapio.adicionar(novoProduto);
+            StorageService.salvarProdutos([...cardapio.listarProdutos]);
+            renderizarCardapio();
+            formNovoProduto.reset();
+            mensagem.innerText = 'Produto cadastrado com sucesso!';
         }
-        else {
-            novoProduto = new Lanche(novoId, nome, preco, imagem, 'M');
+        catch (erro) {
+            if (erro instanceof Error) {
+                mensagem.innerText = erro.message;
+            }
         }
-        cardapio.push(novoProduto);
-        StorageService.salvarProdutos(cardapio);
-        renderizarCardapio();
-        formNovoProduto.reset();
     });
 }
 // ======================================================
@@ -225,28 +255,22 @@ function configurarModalLogin() {
 // ======================================================
 function configurarEnvioPedido() {
     const btnEnviar = document.getElementById('btn-encerrar-pedido');
-    btnEnviar === null || btnEnviar === void 0 ? void 0 : btnEnviar.addEventListener('click', () => {
-        var _a;
+    btnEnviar?.addEventListener('click', () => {
         if (carrinho.obterItens.length === 0) {
             alert('Adicione pelo menos um item ao carrinho!');
             return;
         }
-        // Cria uma nova venda
         const venda = new Venda();
-        // Transfere os produtos do carrinho
-        // para a venda.
         carrinho.obterItens.forEach((item) => {
             for (let i = 0; i < item.quantidade; i++) {
                 venda.adicionar(item.produto);
             }
         });
-        // A venda ainda NÃO é finalizada.
-        // Ela fica aguardando o administrador.
         vendasPendentes.push(venda);
         carrinho.limpar();
         atualizarCarrinhoHTML();
         renderizarVendasPendentes();
-        (_a = document.getElementById('modal-carrinho')) === null || _a === void 0 ? void 0 : _a.classList.remove('ativo');
+        document.getElementById('modal-carrinho')?.classList.remove('ativo');
         alert('Pedido enviado com sucesso! Aguardando aprovação.');
     });
 }
@@ -263,58 +287,42 @@ function renderizarVendasPendentes() {
     }
     container.innerHTML = vendasPendentes
         .map((venda, index) => {
-        // Agrupa produtos iguais
-        const quantidades = new Map();
-        venda.obterProdutos.forEach((produto) => {
-            const existente = quantidades.get(produto.id);
-            if (existente) {
-                existente.quantidade++;
+        const itensHTML = venda.obterProdutos
+            .map((produto) => {
+            let detalhe = '';
+            if (produto instanceof Lanche) {
+                detalhe = ` - Tamanho ${produto.obterTamanho}`;
             }
-            else {
-                quantidades.set(produto.id, {
-                    produto,
-                    quantidade: 1,
-                });
+            if (produto instanceof Bebida) {
+                detalhe = produto.temGelo ? ' - Com gelo' : ' - Sem gelo';
             }
-        });
-        const itensHTML = Array.from(quantidades.values())
-            .map((item) => `
-
-                  <p>
-                    ${item.quantidade}x
-                    ${item.produto.nome}
-                    -
-                    R$ ${(item.produto.calcularPrecoFinal() * item.quantidade).toFixed(2)}
-                  </p>
-
-                `)
+            return `
+            <p>
+              ${produto.nome}${detalhe}
+              -
+              R$ ${produto.calcularPrecoFinal().toFixed(2)}
+            </p>
+          `;
+        })
             .join('');
         return `
+        <div class="venda-pendente">
+          <h4>Pedido ${index + 1}</h4>
 
-            <div class="venda-pendente">
+          ${itensHTML}
 
-              <h4>
-                Pedido ${index + 1}
-              </h4>
+          <p>
+            <strong>
+              Total:
+              R$ ${venda.total.toFixed(2)}
+            </strong>
+          </p>
 
-              ${itensHTML}
-
-              <p>
-                <strong>
-                  Total:
-                  R$ ${venda.total.toFixed(2)}
-                </strong>
-              </p>
-
-              <button
-                onclick="finalizarVenda(${index})"
-              >
-                Finalizar Venda
-              </button>
-
-            </div>
-
-          `;
+          <button onclick="finalizarVenda(${index})">
+            Finalizar Venda
+          </button>
+        </div>
+      `;
     })
         .join('');
 }
@@ -322,8 +330,6 @@ function renderizarVendasPendentes() {
 // FINALIZAR VENDA PELO ADMINISTRADOR
 // ======================================================
 window.finalizarVenda = (index) => {
-    // Segurança:
-    // somente o administrador pode finalizar.
     if (!isAdminLogado) {
         alert('Apenas o administrador pode finalizar uma venda.');
         return;
@@ -331,14 +337,78 @@ window.finalizarVenda = (index) => {
     const venda = vendasPendentes[index];
     if (!venda)
         return;
-    // Agora sim a venda é finalizada.
     venda.finalizar();
-    // Remove a venda da lista de pendentes.
+    const itensVenda = venda.obterProdutos.map((produto) => {
+        let detalhe = '';
+        if (produto instanceof Lanche) {
+            detalhe = `Tamanho ${produto.obterTamanho}`;
+        }
+        if (produto instanceof Bebida) {
+            detalhe = produto.temGelo ? 'Com gelo' : 'Sem gelo';
+        }
+        return {
+            nome: produto.nome,
+            detalhe,
+            preco: produto.calcularPrecoFinal(),
+        };
+    });
+    const novoRegistro = {
+        id: vendasFinalizadas.length > 0
+            ? Math.max(...vendasFinalizadas.map((registro) => registro.id)) + 1
+            : 1,
+        data: new Date().toLocaleString('pt-BR'),
+        itens: itensVenda,
+        total: venda.total,
+    };
+    vendasFinalizadas.push(novoRegistro);
+    StorageService.salvarVendas(vendasFinalizadas);
     vendasPendentes.splice(index, 1);
     atualizarFaturamento();
     renderizarVendasPendentes();
+    renderizarVendasFinalizadas();
     alert('Venda finalizada com sucesso!');
 };
+// ======================================================
+// RENDERIZAR VENDAS FINALIZADAS
+// ======================================================
+function renderizarVendasFinalizadas() {
+    const container = document.getElementById('vendas-finalizadas');
+    if (!container)
+        return;
+    if (vendasFinalizadas.length === 0) {
+        container.innerHTML = '<p>Nenhuma venda finalizada.</p>';
+        return;
+    }
+    container.innerHTML = vendasFinalizadas
+        .map((venda) => {
+        const itensHTML = venda.itens
+            .map((item) => `
+            <p>
+              ${item.nome}
+              ${item.detalhe ? ` - ${item.detalhe}` : ''}
+              -
+              R$ ${item.preco.toFixed(2)}
+            </p>
+          `)
+            .join('');
+        return `
+        <div class="venda-pendente">
+          <h4>Venda ${venda.id}</h4>
+          <small>${venda.data}</small>
+
+          ${itensHTML}
+
+          <p>
+            <strong>
+              Total:
+              R$ ${venda.total.toFixed(2)}
+            </strong>
+          </p>
+        </div>
+      `;
+    })
+        .join('');
+}
 // ======================================================
 // ATUALIZAR FATURAMENTO
 // ======================================================
@@ -358,12 +428,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCarrinho = document.getElementById('btn-acompanhar-carrinho');
     const modalCarrinho = document.getElementById('modal-carrinho');
     const fecharCarrinho = document.getElementById('fechar-carrinho');
-    btnCarrinho === null || btnCarrinho === void 0 ? void 0 : btnCarrinho.addEventListener('click', () => {
+    btnCarrinho?.addEventListener('click', () => {
         atualizarCarrinhoHTML();
-        modalCarrinho === null || modalCarrinho === void 0 ? void 0 : modalCarrinho.classList.add('ativo');
+        modalCarrinho?.classList.add('ativo');
     });
-    fecharCarrinho === null || fecharCarrinho === void 0 ? void 0 : fecharCarrinho.addEventListener('click', () => {
-        modalCarrinho === null || modalCarrinho === void 0 ? void 0 : modalCarrinho.classList.remove('ativo');
+    fecharCarrinho?.addEventListener('click', () => {
+        modalCarrinho?.classList.remove('ativo');
     });
     atualizarFaturamento();
 });

@@ -1,41 +1,47 @@
 import { Produto, Bebida, Lanche } from './models.js';
 
+export interface RegistroVenda {
+  id: number;
+  data: string;
+  itens: {
+    nome: string;
+    detalhe: string;
+    preco: number;
+  }[];
+  total: number;
+}
+
 export class StorageService {
   private static readonly CHAVE_PRODUTOS = 'cardapioProdutos';
+  private static readonly CHAVE_VENDAS = 'vendasFinalizadas';
 
-  // Salva os produtos no localStorage
   static salvarProdutos(produtos: Produto[]): void {
     const produtosParaSalvar = produtos.map((produto) => {
-      // Se o produto for uma Bebida
       if (produto instanceof Bebida) {
         return {
           id: produto.id,
           nome: produto.nome,
           precoBase: produto.precoBase,
           imagemUrl: produto.imagemUrl,
-          categoria: 'bebida',
-          gelada: produto.estaGelada,
+          categoria: 'bebida'
         };
       }
 
-      // Se o produto for um Lanche
       if (produto instanceof Lanche) {
         return {
           id: produto.id,
           nome: produto.nome,
           precoBase: produto.precoBase,
           imagemUrl: produto.imagemUrl,
-          categoria: 'lanche',
-          tamanho: produto.obterTamanho,
+          categoria: 'lanche'
         };
       }
 
-      // Segurança caso exista outro tipo de Produto
       return {
         id: produto.id,
         nome: produto.nome,
         precoBase: produto.precoBase,
-        imagemUrl: produto.imagemUrl,
+        imagemUrl: produto.imagemUrl
       };
     });
 
@@ -45,27 +51,54 @@ export class StorageService {
     );
   }
 
-  // Carrega os dados salvos no localStorage
   static carregarProdutos(): any[] {
-    const dados = localStorage.getItem(StorageService.CHAVE_PRODUTOS);
+    const dados = localStorage.getItem(
+      StorageService.CHAVE_PRODUTOS
+    );
 
-    // Se ainda não existe nada salvo,
-    // retorna um array vazio.
-    if (!dados) {
-      return [];
-    }
+    if (!dados) return [];
 
     try {
       return JSON.parse(dados);
     } catch (erro) {
-      console.error('Erro ao carregar produtos do localStorage:', erro);
+      console.error(
+        'Erro ao carregar produtos do localStorage:',
+        erro
+      );
 
       return [];
     }
   }
 
-  // Verifica se já existem produtos salvos
   static temProdutosSalvos(): boolean {
-    return localStorage.getItem(StorageService.CHAVE_PRODUTOS) !== null;
+    return (
+      localStorage.getItem(StorageService.CHAVE_PRODUTOS) !== null
+    );
+  }
+
+  static salvarVendas(vendas: RegistroVenda[]): void {
+    localStorage.setItem(
+      StorageService.CHAVE_VENDAS,
+      JSON.stringify(vendas)
+    );
+  }
+
+  static carregarVendas(): RegistroVenda[] {
+    const dados = localStorage.getItem(
+      StorageService.CHAVE_VENDAS
+    );
+
+    if (!dados) return [];
+
+    try {
+      return JSON.parse(dados);
+    } catch (erro) {
+      console.error(
+        'Erro ao carregar vendas do localStorage:',
+        erro
+      );
+
+      return [];
+    }
   }
 }

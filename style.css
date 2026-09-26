@@ -11,7 +11,6 @@ body {
   padding-bottom: 80px;
 }
 
-/* Cabecalho */
 header {
   background: #2c3e50;
   color: white;
@@ -27,10 +26,10 @@ header {
   padding: 0 1rem;
 }
 
-/* Grid do Cardápio e Cards */
 .grid-cardapio {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns:
+    repeat(auto-fill, minmax(220px, 1fr));
   gap: 1.5rem;
   margin-top: 1rem;
 }
@@ -39,11 +38,13 @@ header {
   background: white;
   border-radius: 8px;
   padding: 1rem;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, 0.1);
   text-align: center;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .img-produto {
@@ -61,7 +62,14 @@ header {
   margin: 0.5rem 0;
 }
 
-/* Botões Globais */
+.opcao-produto {
+  padding: 0.55rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
 button {
   cursor: pointer;
   border: none;
@@ -86,7 +94,6 @@ button {
   color: white;
 }
 
-/* Botão de Excluir do Administrador (Compacto e Centralizado abaixo do card) */
 .btn-remover-admin {
   background-color: #dc3545;
   color: white;
@@ -97,14 +104,8 @@ button {
   cursor: pointer;
   align-self: center;
   width: auto;
-  transition: background-color 0.2s ease;
 }
 
-.btn-remover-admin:hover {
-  background-color: #bd2130;
-}
-
-/* Botão Flutuante do Carrinho */
 .btn-flutuante {
   position: fixed;
   bottom: 20px;
@@ -113,7 +114,8 @@ button {
   color: white;
   padding: 1rem 1.5rem;
   border-radius: 50px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.2);
   font-size: 1rem;
   display: flex;
   align-items: center;
@@ -128,7 +130,6 @@ button {
   font-size: 0.9rem;
 }
 
-/* Estrutura dos Modais */
 .modal {
   display: none;
   position: fixed;
@@ -136,7 +137,7 @@ button {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   justify-content: center;
   align-items: center;
 }
@@ -162,7 +163,6 @@ button {
   cursor: pointer;
 }
 
-/* Painéis e Formulários */
 .oculto {
   display: none;
 }
@@ -190,12 +190,30 @@ button {
   margin-bottom: 0.8rem;
 }
 
+.area-vendas {
+  margin: 1rem 0;
+}
+
+.venda-pendente {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1rem;
+  margin: 0.8rem 0;
+}
+
 .item-carrinho {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0.8rem 0;
   border-bottom: 1px solid #eee;
+  gap: 1rem;
+}
+
+.controles {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .controles button {
@@ -208,10 +226,30 @@ button {
   color: white;
 }
 
-.btn-whatsapp {
-  background: #25D366;
-  color: white;
-  width: 100%;
-  font-size: 1rem;
+.rodape-carrinho {
   margin-top: 1rem;
+}
+
+.mensagem-form {
+  min-height: 20px;
+  margin: 8px 0;
+  font-weight: bold;
+}
+
+@media (max-width: 600px) {
+  header {
+    gap: 1rem;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .btn-flutuante {
+    right: 10px;
+    bottom: 10px;
+  }
+
+  .item-carrinho {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }

@@ -1,9 +1,3 @@
-// ======================================================
-// 1. INTERFACES
-// ======================================================
-// ======================================================
-// 2. CLASSE BASE ABSTRATA
-// ======================================================
 export class Produto {
     constructor(id, nome, precoBase, imagemUrl = '') {
         this.id = id;
@@ -12,149 +6,132 @@ export class Produto {
         this.imagemUrl = imagemUrl || 'https://via.placeholder.com/150';
     }
 }
-// ======================================================
-// 3. ESPECIALIZAÇÃO: BEBIDA
-// ======================================================
 export class Bebida extends Produto {
-    constructor(id, nome, precoBase, imagemUrl, gelada = true) {
+    constructor(id, nome, precoBase, imagemUrl, comGelo = false) {
         super(id, nome, precoBase, imagemUrl);
-        this.gelada = gelada;
+        this.comGelo = comGelo;
     }
     calcularPrecoFinal() {
-        return this.gelada ? this.precoBase * 1.1 : this.precoBase;
+        return this.comGelo ? this.precoBase + 1 : this.precoBase;
     }
     gerarHTML() {
-        const tempInfo = this.gelada ? '🧊 Gelada' : '☕ Quente/Ambiente';
         return `
       <div class="card-produto bebida">
+        <img src="${this.imagemUrl}" alt="${this.nome}" class="img-produto" />
+        <h3>🥤 ${this.nome}</h3>
 
-        <img
-          src="${this.imagemUrl}"
-          alt="${this.nome}"
-          class="img-produto"
-        />
+        <p class="preco">A partir de R$ ${this.precoBase.toFixed(2)}</p>
 
-        <h3>
-          🥤 ${this.nome}
-        </h3>
+        <label for="gelo-${this.id}">Gelo:</label>
+        <select id="gelo-${this.id}" class="opcao-produto">
+          <option value="false">Sem gelo</option>
+          <option value="true">Com gelo (+ R$ 1,00)</option>
+        </select>
 
-        <p>
-          <small>
-            ${tempInfo}
-          </small>
-        </p>
-
-        <p class="preco">
-          R$ ${this.calcularPrecoFinal().toFixed(2)}
-        </p>
-
-        <button
-          onclick="adicionarAoCarrinho(${this.id})"
-        >
+        <button onclick="adicionarBebidaAoCarrinho(${this.id})">
           Adicionar ao Carrinho
         </button>
-
       </div>
     `;
     }
-    // Permite consultar se a bebida está gelada
-    // sem tornar o atributo gelada público.
-    get estaGelada() {
-        return this.gelada;
+    get temGelo() {
+        return this.comGelo;
     }
 }
-// ======================================================
-// 4. ESPECIALIZAÇÃO: LANCHE
-// ======================================================
 export class Lanche extends Produto {
     constructor(id, nome, precoBase, imagemUrl, tamanho = 'M') {
         super(id, nome, precoBase, imagemUrl);
         this.tamanho = tamanho;
     }
     calcularPrecoFinal() {
-        if (this.tamanho === 'G') {
-            return this.precoBase + 5.0;
-        }
-        if (this.tamanho === 'P') {
-            return Math.max(0, this.precoBase - 2.0);
-        }
+        if (this.tamanho === 'G')
+            return this.precoBase + 5;
+        if (this.tamanho === 'P')
+            return Math.max(0, this.precoBase - 2);
         return this.precoBase;
     }
     gerarHTML() {
         return `
       <div class="card-produto lanche">
+        <img src="${this.imagemUrl}" alt="${this.nome}" class="img-produto" />
+        <h3>🍔 ${this.nome}</h3>
 
-        <img
-          src="${this.imagemUrl}"
-          alt="${this.nome}"
-          class="img-produto"
-        />
+        <p class="preco">A partir de R$ ${Math.max(0, this.precoBase - 2).toFixed(2)}</p>
 
-        <h3>
-          🍔 ${this.nome} (${this.tamanho})
-        </h3>
+        <label for="tamanho-${this.id}">Tamanho:</label>
+        <select id="tamanho-${this.id}" class="opcao-produto">
+          <option value="P">P (- R$ 2,00)</option>
+          <option value="M" selected>M (preço base)</option>
+          <option value="G">G (+ R$ 5,00)</option>
+        </select>
 
-        <p class="preco">
-          R$ ${this.calcularPrecoFinal().toFixed(2)}
-        </p>
-
-        <button
-          onclick="adicionarAoCarrinho(${this.id})"
-        >
+        <button onclick="adicionarLancheAoCarrinho(${this.id})">
           Adicionar ao Carrinho
         </button>
-
       </div>
     `;
     }
-    // Permite consultar o tamanho
-    // mantendo tamanho como private.
     get obterTamanho() {
         return this.tamanho;
     }
 }
-// ======================================================
-// 5. CARRINHO
-// ======================================================
+export class Cardapio {
+    constructor() {
+        this.produtos = [];
+    }
+    definirProdutos(produtos) {
+        this.produtos = [...produtos];
+    }
+    adicionar(produto) {
+        this.produtos.push(produto);
+    }
+    remover(id) {
+        this.produtos = this.produtos.filter((produto) => produto.id !== id);
+    }
+    buscarPorId(id) {
+        return this.produtos.find((produto) => produto.id === id);
+    }
+    get listarProdutos() {
+        return [...this.produtos];
+    }
+    get quantidade() {
+        return this.produtos.length;
+    }
+}
 export class Carrinho {
     constructor() {
         this.itens = [];
     }
     adicionarItem(produto) {
-        const itemExistente = this.itens.find((i) => i.produto.id === produto.id);
+        const itemExistente = this.itens.find((item) => item.produto.id === produto.id &&
+            item.produto.calcularPrecoFinal() === produto.calcularPrecoFinal());
         if (itemExistente) {
             itemExistente.quantidade += 1;
         }
         else {
-            this.itens.push({
-                produto,
-                quantidade: 1,
-            });
+            this.itens.push({ produto, quantidade: 1 });
         }
     }
-    alterarQuantidade(idProduto, delta) {
-        const item = this.itens.find((i) => i.produto.id === idProduto);
+    alterarQuantidade(indice, delta) {
+        const item = this.itens[indice];
         if (item) {
             item.quantidade += delta;
             if (item.quantidade <= 0) {
-                this.removerItem(idProduto);
+                this.removerItem(indice);
             }
         }
     }
-    removerItem(idProduto) {
-        const index = this.itens.findIndex((i) => i.produto.id === idProduto);
-        if (index !== -1) {
-            this.itens.splice(index, 1);
+    removerItem(indice) {
+        if (indice >= 0 && indice < this.itens.length) {
+            this.itens.splice(indice, 1);
         }
     }
     get total() {
-        return this.itens.reduce((acc, item) => acc + item.produto.calcularPrecoFinal() * item.quantidade, 0);
+        return this.itens.reduce((soma, item) => soma + item.produto.calcularPrecoFinal() * item.quantidade, 0);
     }
     get totalItens() {
-        return this.itens.reduce((acc, item) => acc + item.quantidade, 0);
+        return this.itens.reduce((soma, item) => soma + item.quantidade, 0);
     }
-    // Retorna uma cópia da lista
-    // para proteger o array original.
     get obterItens() {
         return [...this.itens];
     }
@@ -162,58 +139,35 @@ export class Carrinho {
         this.itens.length = 0;
     }
 }
-// ======================================================
-// 6. VENDA
-// ======================================================
 export class Venda {
     constructor() {
-        // Produtos pertencentes à venda.
-        // O array não pode ser acessado diretamente de fora.
         this.produtos = [];
-        // Controla se a venda já foi finalizada.
         this.fechada = false;
     }
-    // ====================================================
-    // ADICIONAR PRODUTO
-    // ====================================================
     adicionar(produto) {
         if (this.fechada) {
             throw new Error('Não é possível adicionar produtos a uma venda finalizada.');
         }
         this.produtos.push(produto);
     }
-    // ====================================================
-    // TOTAL DA VENDA
-    // ====================================================
     get total() {
         return this.produtos.reduce((soma, produto) => soma + produto.calcularPrecoFinal(), 0);
     }
-    // ====================================================
-    // CONSULTAR PRODUTOS
-    // ====================================================
     get obterProdutos() {
-        // Retornamos uma cópia.
-        // O array privado original continua protegido.
         return [...this.produtos];
     }
-    // ====================================================
-    // FINALIZAR VENDA
-    // ====================================================
     finalizar() {
         if (this.fechada) {
             throw new Error('Esta venda já foi finalizada.');
         }
-        // Somente aqui o faturamento aumenta.
         Venda.faturamentoTotal += this.total;
         this.fechada = true;
     }
-    // ====================================================
-    // FATURAMENTO ACUMULADO
-    // ====================================================
     static get faturamento() {
         return Venda.faturamentoTotal;
     }
+    static carregarFaturamento(valor) {
+        Venda.faturamentoTotal = valor;
+    }
 }
-// Compartilhado por todas as vendas.
-// Só aumenta quando finalizar() for executado.
 Venda.faturamentoTotal = 0;
