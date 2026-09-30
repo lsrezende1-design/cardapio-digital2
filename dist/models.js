@@ -20,12 +20,12 @@ export class Bebida extends Produto {
         <img src="${this.imagemUrl}" alt="${this.nome}" class="img-produto" />
         <h3>🥤 ${this.nome}</h3>
 
-        <p class="preco">A partir de R$ ${this.precoBase.toFixed(2)}</p>
+        <p class="preco">R$ ${this.precoBase.toFixed(2)}</p>
 
-        <label for="gelo-${this.id}">Gelo:</label>
+        <label for="gelo-${this.id}">Com pedras de Gelo?</label>
         <select id="gelo-${this.id}" class="opcao-produto">
-          <option value="false">Sem gelo</option>
-          <option value="true">Com gelo (+ R$ 1,00)</option>
+          <option value="false">Não</option>
+          <option value="true">Sim (+ R$ 1,00)</option>
         </select>
 
         <button onclick="adicionarBebidaAoCarrinho(${this.id})">
@@ -56,7 +56,7 @@ export class Lanche extends Produto {
         <img src="${this.imagemUrl}" alt="${this.nome}" class="img-produto" />
         <h3>🍔 ${this.nome}</h3>
 
-        <p class="preco">A partir de R$ ${Math.max(0, this.precoBase - 2).toFixed(2)}</p>
+        <p class="preco"> R$ ${Math.max(0, this.precoBase - 2).toFixed(2)}</p>
 
         <label for="tamanho-${this.id}">Tamanho:</label>
         <select id="tamanho-${this.id}" class="opcao-produto">
