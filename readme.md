@@ -55,101 +55,68 @@ renderizável possui `id`, `nome` e os métodos `calcularPrecoFinal()` e
 
 Classe abstrata que implementa `ProdutoRenderizavel` e reúne os dados
 comuns aos produtos, como identificador, nome, preço-base e imagem. O
-`id` é `readonly`.
-
-Os métodos `calcularPrecoFinal()` e `gerarHTML()` são abstratos e devem
-ser implementados pelas classes filhas.
+`id` é `readonly`. Os métodos `calcularPrecoFinal()` e `gerarHTML()` são
+abstratos e devem ser implementados pelas classes filhas.
 
 ### Bebida
 
-Classe que herda de `Produto`.
-
-A bebida pode ser escolhida:
-
-- sem gelo: mantém o preço-base;
-- com gelo: acrescenta **R\$ 1,00** ao preço-base.
-
-A própria classe implementa `calcularPrecoFinal()` e `gerarHTML()`.
+Classe que herda de `Produto`. Sem gelo mantém o preço-base; com gelo
+acrescenta **R\$ 1,00**. A própria classe implementa
+`calcularPrecoFinal()` e `gerarHTML()` de acordo com suas regras.
 
 ### Lanche
 
-Classe que herda de `Produto`.
-
-O preço depende do tamanho escolhido:
-
-- P: preço-base menos **R\$ 2,00**;
-- M: mantém o preço-base;
-- G: preço-base mais **R\$ 5,00**.
-
-A própria classe implementa `calcularPrecoFinal()` e `gerarHTML()`.
+Classe que herda de `Produto`. O tamanho P custa preço-base menos **R\$
+2,00**, M mantém o preço-base e G acrescenta **R\$ 5,00**. A própria
+classe implementa `calcularPrecoFinal()` e `gerarHTML()` de acordo com
+suas regras.
 
 ### Cardapio
 
-Classe responsável por gerenciar a coleção de produtos do cardápio.
-
-Ela centraliza operações como definir a lista de produtos, adicionar,
-remover, procurar um produto pelo `id`, consultar os produtos
-disponíveis e obter a quantidade cadastrada.
-
-Assim, o `app.ts` não precisa manipular diretamente o array interno do
-cardápio.
+Classe responsável por gerenciar a coleção de produtos. Centraliza
+definir, adicionar, remover, procurar pelo `id`, consultar os produtos e
+obter a quantidade cadastrada. Assim, o `app.ts` não precisa manipular
+diretamente o array interno.
 
 ### Carrinho
 
-Responsável pelos itens escolhidos pelo cliente.
+Responsável pelos itens escolhidos pelo cliente. Sua lista é
+`private readonly` e a classe controla adição, quantidade, remoção e
+limpeza.
 
-Sua lista de itens é `private readonly`, evitando acesso direto pela
-interface. A classe possui métodos controlados para adicionar produtos,
-alterar quantidades, remover itens e limpar o carrinho.
-
-O total é calculado chamando `calcularPrecoFinal()` dos produtos.
+O total trabalha com o tipo comum `Produto` e chama
+`produto.calcularPrecoFinal()`. O objeto armazenado pode ser uma
+`Bebida` ou um `Lanche`, e a implementação correspondente ao objeto
+concreto é executada.
 
 ### Venda
 
-Representa uma venda do sistema.
-
-A lista de produtos é `private readonly`, e os produtos são incluídos
-por meio do método `adicionar()`. Depois que a venda é finalizada, novos
-produtos não podem ser adicionados.
-
-O getter `total` calcula o valor da venda a partir do preço final de
-cada produto.
+Representa uma venda. Sua lista interna é `Produto[]`, podendo conter
+objetos concretos como `Bebida` e `Lanche`. O getter `total` percorre
+essa coleção e chama `calcularPrecoFinal()` em cada `Produto`. Assim, a
+`Venda` não precisa conhecer a regra específica de cada subclasse: cada
+objeto concreto responde com sua própria implementação.
 
 A classe também possui o membro `static` responsável pelo faturamento
 acumulado. O faturamento aumenta quando `finalizar()` é executado.
 
 ### StorageService
 
-Responsável pela persistência no `localStorage`.
-
-O sistema salva:
-
-- produtos cadastrados no cardápio;
-- vendas finalizadas.
-
-Ao carregar a aplicação, os produtos salvos são reconstruídos como
-objetos `Bebida` ou `Lanche`. As vendas finalizadas são recuperadas e
-seus totais são utilizados para reconstruir o faturamento acumulado.
-
-Os pedidos ainda pendentes permanecem apenas durante a sessão e não são
-persistidos.
+Responsável pela persistência no `localStorage`. Salva produtos e vendas
+finalizadas. Ao carregar a aplicação, os produtos são reconstruídos como
+objetos `Bebida` ou `Lanche`. Os pedidos pendentes permanecem apenas
+durante a sessão.
 
 ## Produtos iniciais
 
-Quando ainda não existem produtos salvos no navegador, o sistema utiliza
-os produtos definidos em `produtosIniciais.ts`.
+Quando ainda não existem produtos salvos, o sistema utiliza
+`produtosIniciais.ts`, com quatro produtos criados diretamente em
+TypeScript: Suco de Laranja, Refrigerante Lata, X-Salada Especial e
+Super X-Tudo.
 
-O projeto possui quatro produtos iniciais criados diretamente pelo
-código TypeScript:
-
-- Suco de Laranja;
-- Refrigerante Lata;
-- X-Salada Especial;
-- Super X-Tudo.
-
-Não é utilizado um arquivo JSON externo como fonte dos produtos.
-`JSON.stringify()` e `JSON.parse()` aparecem apenas para serializar e
-recuperar informações armazenadas no `localStorage`.
+Não é utilizado arquivo JSON externo como fonte dos produtos.
+`JSON.stringify()` e `JSON.parse()` são usados apenas para serializar e
+recuperar dados do `localStorage`.
 
 ## Programação Orientada a Objetos
 
@@ -165,18 +132,53 @@ produtos renderizáveis.
 
 ### Polimorfismo
 
-`Bebida` e `Lanche` possuem o método `calcularPrecoFinal()`, porém cada
-classe implementa esse método de forma diferente.
+`Bebida` e `Lanche` fornecem implementações próprias de
+`calcularPrecoFinal()` e `gerarHTML()`. Essas implementações diferentes
+**possibilitam** o comportamento polimórfico.
 
-Quando o sistema chama:
+O polimorfismo fica evidente quando outras partes do sistema trabalham
+com esses objetos pelo tipo comum `Produto`, sem precisar decidir
+manualmente se o objeto é uma `Bebida` ou um `Lanche`.
+
+No `Carrinho`:
 
 ```ts
-produto.calcularPrecoFinal();
+item.produto.calcularPrecoFinal();
 ```
 
-o comportamento executado depende do objeto real. Uma `Bebida` utiliza
-sua regra de preço e um `Lanche` utiliza sua própria regra, sem que o
-cálculo geral precise conhecer todos os detalhes de cada tipo.
+`item.produto` é tratado como `Produto`, mas o objeto concreto pode ser
+`Bebida` ou `Lanche`. Em tempo de execução, é utilizada a implementação
+correspondente ao objeto real.
+
+Na `Venda`:
+
+```ts
+private readonly produtos: Produto[] = [];
+
+get total(): number {
+  return this.produtos.reduce(
+    (soma, produto) => soma + produto.calcularPrecoFinal(),
+    0
+  );
+}
+```
+
+A `Venda` trabalha com uma coleção de `Produto`, que pode conter
+instâncias de `Bebida` e `Lanche`. Ao chamar
+`produto.calcularPrecoFinal()`, cada objeto executa sua própria regra.
+
+A renderização do cardápio segue o mesmo princípio ao trabalhar com
+objetos do tipo `Produto` e chamar:
+
+```ts
+produto.gerarHTML();
+```
+
+Portanto, o polimorfismo não está apenas no fato de as subclasses
+possuírem implementações diferentes. Ele é observado quando o sistema
+trata essas instâncias pelo tipo comum `Produto` e, ao chamar o mesmo
+método, obtém automaticamente o comportamento correspondente ao objeto
+concreto.
 
 ### Encapsulamento
 
@@ -197,17 +199,17 @@ específica. Por isso é armazenado em um membro `static`.
 ## Fluxo principal
 
 1.  A aplicação carrega os produtos do `localStorage`.
-2.  Se ainda não houver produtos salvos, utiliza `produtosIniciais`.
+2.  Se não houver produtos salvos, utiliza `produtosIniciais`.
 3.  O `Cardapio` recebe e gerencia os produtos.
 4.  Cada produto gera seu próprio card HTML.
 5.  O cliente escolhe as opções e adiciona produtos ao `Carrinho`.
 6.  Ao enviar o pedido, é criada uma `Venda`.
 7.  A venda fica como pedido pendente.
-8.  O administrador visualiza o pedido e finaliza a venda.
+8.  O administrador visualiza e finaliza a venda.
 9.  `Venda.finalizar()` acrescenta o total ao faturamento.
 10. A venda finalizada é salva no `localStorage`.
-11. Ao recarregar a página, as vendas finalizadas são recuperadas e o
-    faturamento é reconstruído.
+11. Ao recarregar, as vendas finalizadas são recuperadas e o faturamento
+    é reconstruído.
 
 ## Requisitos atendidos
 
@@ -217,9 +219,9 @@ específica. Por isso é armazenado em um membro `static`.
 - HTML inicial sem produtos escritos manualmente;
 - produtos representados por classes;
 - quatro produtos iniciais criados por código;
-- gerenciamento do cardápio pela classe `Cardapio`;
-- persistência dos produtos com `localStorage`;
-- cards organizados em grid responsivo.
+- gerenciamento pela classe `Cardapio`;
+- persistência com `localStorage`;
+- cards em grid responsivo.
 
 ### Sprint 2
 
@@ -227,15 +229,14 @@ específica. Por isso é armazenado em um membro `static`.
 - classe-base abstrata `Produto`;
 - classes filhas `Bebida` e `Lanche`;
 - herança;
-- polimorfismo no cálculo de preço e geração dos cards;
-- `private`;
-- `readonly`;
-- `static`;
-- classe `Venda`;
-- lista interna da venda protegida;
+- implementações específicas de `calcularPrecoFinal()` e `gerarHTML()`
+  nas subclasses;
+- **uso polimórfico de objetos do tipo `Produto` no `Carrinho`, na
+  `Venda` e na renderização do cardápio**;
+- `private`, `readonly` e `static`;
+- classe `Venda` e lista interna protegida;
 - cálculo do total pelos próprios produtos;
-- ação de finalizar venda;
-- faturamento acumulado;
+- finalização de venda e faturamento acumulado;
 - painel administrativo;
 - pedidos pendentes e histórico de vendas finalizadas.
 
